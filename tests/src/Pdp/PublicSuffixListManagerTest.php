@@ -5,10 +5,11 @@ namespace Pdp;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 
-// work around PHP 5.3 quirky behavior with ftruncate() and streams
-// @see https://bugs.php.net/bug.php?id=53888
-if (version_compare(PHP_VERSION, '5.4.0') < 0) {
-    function ftruncate($fp, $size) { return @\ftruncate($fp, $size) || true; }
+// work around vfsStream missing LOCK_EX support within file_put_contents
+// @see https://github.com/mikey179/vfsStream/wiki/Known-Issues
+function file_put_contents($path, $data, $flags = 0, $context = null) {
+    $flags &= ~LOCK_EX;
+    return @\file_put_contents($path, $data, $flags, $context);
 }
 
 class PublicSuffixListManagerTest extends \PHPUnit_Framework_TestCase
@@ -152,7 +153,7 @@ class PublicSuffixListManagerTest extends \PHPUnit_Framework_TestCase
 
     public function testWriteThrowsExceptionIfCanNotWrite()
     {
-        $this->setExpectedException('\Exception', "Cannot write to '/does/not/exist/public-suffix-list.php'");
+        $this->setExpectedException('\Exception', "Cannot write '/does/not/exist/public-suffix-list.php'");
         $manager = new PublicSuffixListManager('/does/not/exist');
         $manager->writePhpCache(array());
     }

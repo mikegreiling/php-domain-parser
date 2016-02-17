@@ -241,24 +241,11 @@ class PublicSuffixListManager
      */
     protected function write($filename, $data)
     {
-        $filePath = $this->cacheDir . '/' . $filename;
+        $result = @file_put_contents($this->cacheDir . '/' . $filename, $data, LOCK_EX);
 
-        // open with 'c' and truncate file only after obtaining a lock
-        $fp = @fopen($filePath, 'c');
-
-        $result = $fp
-            && flock($fp, LOCK_EX)
-            && ftruncate($fp, 0)
-            && fwrite($fp, $data) !== false
-            && fflush($fp);
-
-        if (!$result) {
-            $fp && fclose($fp);
-            throw new \Exception("Cannot write to '$filePath'");
+        if ($result === false) {
+            throw new \Exception("Cannot write '" . $this->cacheDir . '/' . "$filename'");
         }
-
-        flock($fp, LOCK_UN);
-        fclose($fp);
 
         return $result;
     }
